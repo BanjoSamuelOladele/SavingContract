@@ -2,9 +2,10 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
+import "./IERC20.sol";
 
 
-contract WizT{
+contract WizT is IERC20{
 
     uint private tokenTotalSupply;
 
@@ -16,18 +17,19 @@ contract WizT{
         balances[msg.sender] = _totalSupply;
     }
 
-    function totalSupply() external view returns (uint){
+    function totalSupply() external view virtual override returns (uint){
         return tokenTotalSupply;
     }
 
-    function balanceOf(address addr) external view returns (uint){
+    function balanceOf(address addr) external view virtual override returns (uint){
         return balances[addr];
     }
 
-    function transfer(address to, uint amount) external {
+    function transfer(address to, uint amount) external virtual override returns (bool){
         uint totalPay = amount + calculteBurnCharge(amount);
         checker(balances[msg.sender], totalPay, to);
         transferring(msg.sender, to, amount);
+        return true;
     }
 
     function transferring(address owner, address to, uint amount) private {
@@ -43,9 +45,10 @@ contract WizT{
         return amount * 10 / 100;
     }
 
-    function approve(address addr, uint amount) external {
+    function approve(address addr, uint amount) external returns(bool){
         checker(balances[msg.sender], amount, addr);
         allowedSpenderAmount[msg.sender][addr] = allowedSpenderAmount[msg.sender][addr] + amount;
+        return true;
     }
 
     function checker(uint balance, uint amount, address addr) private pure  {
@@ -54,13 +57,14 @@ contract WizT{
         require(addr != address(0), "transfer to this address not allowed");
     }
 
-    function allowance(address realOwner) external view returns (uint){
-        return allowedSpenderAmount[realOwner][msg.sender];
+    function allowance(address owner, address spender) external view returns (uint){
+        return allowedSpenderAmount[owner][spender];
     }
 
-    function transferFrom(address realOwner, address to, uint amount) external {
-        require(allowedSpenderAmount[realOwner][msg.sender] >= (amount+calculteBurnCharge(amount)), "exceed allowed tranfer");
-        transferring(realOwner, to, amount);
-        allowedSpenderAmount[realOwner][msg.sender] = amount - calculteBurnCharge(amount);
+    function transferFrom(address owner, address recipient, uint amount) external virtual override returns(bool){
+        require(allowedSpenderAmount[owner][msg.sender] >= (amount+calculteBurnCharge(amount)), "exceed allowed tranfer");
+        transferring(owner, recipient, amount);
+        allowedSpenderAmount[owner][msg.sender] = amount - calculteBurnCharge(amount);
+        return true;
     }
 }
